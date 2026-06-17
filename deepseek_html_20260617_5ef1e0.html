@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梅花易数 · 起卦解卦</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f5f0eb;color:#3e3a36;padding:20px;max-width:520px;margin:0 auto;}
+h1{font-weight:300;font-size:28px;text-align:center;letter-spacing:6px;border-bottom:2px solid #dacfc8;padding-bottom:12px;}
+.sub{text-align:center;color:#8a7a6a;margin:8px 0 24px;font-size:14px;}
+.card{background:#fff;border-radius:24px;padding:24px 20px;margin-bottom:20px;border:1px solid #ece6e0;box-shadow:0 8px 30px rgba(0,0,0,0.05);}
+.input-group{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.input-group label{display:flex;flex-direction:column;font-weight:500;flex:1;min-width:80px;}
+.input-group input{margin-top:6px;padding:12px;border:1px solid #d6cdc4;border-radius:16px;font-size:18px;text-align:center;background:#faf8f6;width:100%;}
+.btn-group{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.btn{padding:12px 28px;border:none;border-radius:40px;font-size:17px;font-weight:500;cursor:pointer;flex:1;min-width:100px;}
+.btn-primary{background:#b8a392;color:#fff;}
+.btn-secondary{background:#dacfc8;color:#3e3a36;}
+.btn-gold{background:#c9a96e;color:#fff;}
+.error{color:#b65a4a;background:#fce9e5;padding:6px 14px;border-radius:40px;margin:8px 0;display:none;text-align:center;}
+.hex-block{display:flex;flex-direction:column;align-items:center;margin:6px 0;cursor:pointer;transition:0.2s;padding:8px 12px;border-radius:16px;}
+.hex-block:hover{background:#f8f4f0;}
+.hex-symbol{font-size:44px;line-height:1.4;font-family:'Times New Roman','Songti SC',serif;letter-spacing:4px;}
+.hex-title{font-size:20px;font-weight:600;margin:2px 0;}
+.hex-desc{font-size:14px;color:#6b5f54;}
+.divider{width:60px;height:2px;background:linear-gradient(to right,transparent,#dacfc8,transparent);margin:10px auto;}
+.info-line{display:flex;justify-content:center;gap:14px;font-size:14px;color:#6b5f54;flex-wrap:wrap;margin-top:6px;}
+.info-line span{background:#f4efea;padding:4px 14px;border-radius:30px;}
+.footnote{font-size:12px;color:#b0a392;text-align:center;border-top:1px solid #ece6e0;padding-top:20px;margin-top:20px;}
+.hint{font-size:12px;color:#b8a392;text-align:center;margin-top:6px;}
+
+/* 弹窗样式 */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;}
+.modal-content{background:#fff;border-radius:28px;padding:28px 24px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.modal-close{position:sticky;top:0;background:#fff;padding-bottom:12px;text-align:right;font-size:28px;cursor:pointer;color:#8a7a6a;border-bottom:1px solid #ece6e0;margin-bottom:16px;z-index:1;}
+.modal-title{font-size:22px;font-weight:600;text-align:center;margin-bottom:8px;}
+.modal-sub{font-size:14px;color:#6b5f54;text-align:center;margin-bottom:16px;}
+.modal-section{margin-bottom:16px;}
+.modal-section-label{font-size:13px;color:#8a7a6a;font-weight:500;letter-spacing:1px;margin-bottom:4px;}
+.modal-section-text{font-size:16px;line-height:1.7;color:#3e3a36;background:#f9f6f2;padding:12px 16px;border-radius:12px;}
+.modal-section-text.yao{background:#f4efe8;font-size:15px;padding:10px 16px;}
+.yao-label{display:inline-block;background:#c9a96e;color:#fff;padding:2px 12px;border-radius:20px;font-size:12px;margin-right:6px;}
+</style>
+</head>
+<body>
+
+<h1>🌿 梅花易数</h1>
+<div class="sub">以数起卦 · 点击卦名解卦</div>
+
+<div class="card">
+  <div style="font-weight:500;text-align:center;margin-bottom:6px;">输入两个数字（1~99）</div>
+  <div class="input-group">
+    <label>上卦（天）<input type="number" id="num1" value="8" min="1" max="99"></label>
+    <label>下卦（地）<input type="number" id="num2" value="31" min="1" max="99"></label>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="manualQi()">起 卦</button>
+    <button class="btn btn-secondary" onclick="timeQi()">⏱ 此时起卦</button>
+  </div>
+  <div id="errorMsg" class="error"></div>
+</div>
+
+<div id="resultArea" class="card" style="display:none;">
+  <div id="hexagramContent"></div>
+  <div class="hint" style="margin-top:12px;">👆 点击卦名查看解卦</div>
+</div>
+
+<!-- 解卦弹窗 -->
+<div id="modal" class="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content" id="modalContent"></div>
+</div>
+
+<div class="footnote">卦象仅供参考 · 心诚则灵</div>
+
+<script>
+// ============================================================
+// 1. 八卦数据
+// ============================================================
+const TRI = {
+  1:{n:'乾',s:'☰',y:[1,1,1]},2:{n:'兑',s:'☱',y:[1,1,0]},
+  3:{n:'离',s:'☲',y:[1,0,1]},4:{n:'震',s:'☳',y:[1,0,0]},
+  5:{n:'巽',s:'☴',y:[0,1,1]},6:{n:'坎',s:'☵',y:[0,1,0]},
+  7:{n:'艮',s:'☶',y:[0,0,1]},8:{n:'坤',s:'☷',y:[0,0,0]}
+};
+const TN={1:'乾',2:'兑',3:'离',4:'震',5:'巽',6:'坎',7:'艮',8:'坤'};
+const TS={1:'☰',2:'☱',3:'☲',4:'☳',5:'☴',6:'☵',7:'☶',8:'☷'};
+
+// ============================================================
+// 2. 64卦名称 & 卦辞
+// ============================================================
+const HEX_DICT = {
+'11':{name:'乾为天',ci:'元亨利贞。天行健，君子以自强不息。'},
+'12':{name:'天泽履',ci:'履虎尾，不咥人，亨。君子以辨上下，定民志。'},
+'13':{name:'天火同人',ci:'同人于野，亨。利涉大川，利君子贞。'},
+'14':{name:'天雷无妄',ci:'元亨利贞。其匪正有眚，不利有攸往。'},
+'15':{name:'天风姤',ci:'女壮，勿用取女。天地相遇，品物咸章。'},
+'16':{name:'天水讼',ci:'有孚，窒惕，中吉，终凶。利见大人，不利涉大川。'},
+'17':{name:'天山遁',ci:'亨，小利贞。天下有山，遁。君子以远小人，不恶而严。'},
+'18':{name:'天地否',ci:'否之匪人，不利君子贞，大往小来。天地不交，否。君子以俭德辟难。'},
+'21':{name:'泽天夬',ci:'扬于王庭，孚号有厉。告自邑，不利即戎。利有攸往。'},
+'22':{name:'兑为泽',ci:'亨，利贞。丽泽，兑。君子以朋友讲习。'},
+'23':{name:'泽火革',ci:'己日乃孚。元亨利贞，悔亡。天地革而四时成。'},
+'24':{name:'泽雷随',ci:'元亨利贞，无咎。天下随时，君子以向晦入宴息。'},
+'25':{name:'泽风大过',ci:'栋桡，利有攸往，亨。君子以独立不惧，遁世无闷。'},
+'26':{name:'泽水困',ci:'亨，贞，大人吉，无咎。有言不信。'},
+'27':{name:'泽山咸',ci:'亨，利贞，取女吉。山上有泽，咸。君子以虚受人。'},
+'28':{name:'泽地萃',ci:'亨，王假有庙。利见大人，亨，利贞。用大牲吉。'},
+'31':{name:'火天大有',ci:'元亨。顺天休命，君子以遏恶扬善。'},
+'32':{name:'火泽睽',ci:'小事吉。上火下泽，睽。君子以同而异。'},
+'33':{name:'离为火',ci:'利贞，亨。畜牝牛，吉。明两作离，大人以继明照于四方。'},
+'34':{name:'火雷噬嗑',ci:'亨，利用狱。雷电噬嗑，先王以明罚敕法。'},
+'35':{name:'火风鼎',ci:'元吉，亨。以木巽火，亨饪也。君子以正位凝命。'},
+'36':{name:'火水未济',ci:'亨。小狐汔济，濡其尾，无攸利。君子以慎辨物居方。'},
+'37':{name:'火山旅',ci:'小亨，旅贞吉。山上有火，旅。君子以明慎用刑而不留狱。'},
+'38':{name:'火地晋',ci:'康侯用锡马蕃庶，昼日三接。明出地上，晋。君子以自昭明德。'},
+'41':{name:'雷天大壮',ci:'利贞，吉。雷在天上，大壮。君子以非礼勿履。'},
+'42':{name:'雷泽归妹',ci:'征凶，无攸利。泽上有雷，归妹。君子以永终知敝。'},
+'43':{name:'雷火丰',ci:'亨，王假之，勿忧，宜日中。雷电皆至，丰。君子以折狱致刑。'},
+'44':{name:'震为雷',ci:'亨。震来虩虩，笑言哑哑。震惊百里，不丧匕鬯。'},
+'45':{name:'雷风恒',ci:'亨，无咎，利贞，利有攸往。君子以立不易方。'},
+'46':{name:'雷水解',ci:'利西南。无所往，其来复吉。有攸往，夙吉。天地解而雷雨作。'},
+'47':{name:'雷山小过',ci:'亨，利贞。可小事，不可大事。飞鸟遗之音。'},
+'48':{name:'雷地豫',ci:'利建侯行师。雷出地奋，豫。先王以作乐崇德。'},
+'51':{name:'风天小畜',ci:'亨。密云不雨，自我西郊。君子以懿文德。'},
+'52':{name:'风泽中孚',ci:'豚鱼吉，利涉大川，利贞。君子以议狱缓死。'},
+'53':{name:'风火家人',ci:'利女贞。风自火出，家人。君子以言有物而行有恒。'},
+'54':{name:'风雷益',ci:'利有攸往，利涉大川。风雷，益。君子以见善则迁。'},
+'55':{name:'巽为风',ci:'小亨，利有攸往，利见大人。随风，巽。君子以申命行事。'},
+'56':{name:'风水涣',ci:'亨，王假有庙。利涉大川，利贞。风行水上，涣。'},
+'57':{name:'风山渐',ci:'女归吉，利贞。山上有木，渐。君子以居贤德善俗。'},
+'58':{name:'风地观',ci:'盥而不荐，有孚颙若。风行地上，观。先王以省方观民设教。'},
+'61':{name:'水天需',ci:'有孚，光亨，贞吉。利涉大川。云上于天，需。'},
+'62':{name:'水泽节',ci:'亨。苦节不可贞。泽上有水，节。君子以制数度，议德行。'},
+'63':{name:'水火既济',ci:'亨小，利贞。初吉终乱。水在火上，既济。君子以思患而豫防之。'},
+'64':{name:'水雷屯',ci:'元亨利贞。勿用，有攸往，利建侯。云雷屯，君子以经纶。'},
+'65':{name:'水风井',ci:'改邑不改井，无丧无得，往来井井。木上有水，井。'},
+'66':{name:'坎为水',ci:'习坎，有孚，维心亨，行有尚。水洊至，习坎。'},
+'67':{name:'水山蹇',ci:'利西南，不利东北。利见大人，贞吉。山上有水，蹇。'},
+'68':{name:'水地比',ci:'吉。原筮，元永贞，无咎。地上有水，比。先王以建万国。'},
+'71':{name:'山天大畜',ci:'利贞。不家食吉，利涉大川。天在山中，大畜。'},
+'72':{name:'山泽损',ci:'有孚，元吉，无咎，可贞，利有攸往。损下益上，其道上行。'},
+'73':{name:'山火贲',ci:'亨。小利有攸往。山下有火，贲。君子以明庶政，无敢折狱。'},
+'74':{name:'山雷颐',ci:'贞吉。观颐，自求口实。山下有雷，颐。君子以慎言语，节饮食。'},
+'75':{name:'山风蛊',ci:'元亨，利涉大川。先甲三日，后甲三日。山下有风，蛊。'},
+'76':{name:'山水蒙',ci:'亨。匪我求童蒙，童蒙求我。山下出泉，蒙。君子以果行育德。'},
+'77':{name:'艮为山',ci:'其背，不获其身。行其庭，不见其人。无咎。'},
+'78':{name:'山地剥',ci:'不利有攸往。山附于地，剥。上以厚下安宅。'},
+'81':{name:'地天泰',ci:'小往大来，吉亨。天地交，泰。后以财成天地之道。'},
+'82':{name:'地泽临',ci:'元亨利贞。至于八月有凶。泽上有地，临。君子以教思无穷。'},
+'83':{name:'地火明夷',ci:'利艰贞。明入地中，明夷。君子以莅众，用晦而明。'},
+'84':{name:'地雷复',ci:'亨。出入无疾，朋来无咎。七日来复，利有攸往。'},
+'85':{name:'地风升',ci:'元亨，用见大人，勿恤。南征吉。地中生木，升。'},
+'86':{name:'地水师',ci:'贞丈人吉，无咎。地中有水，师。君子以容民畜众。'},
+'87':{name:'地山谦',ci:'亨，君子有终。地中有山，谦。君子以裒多益寡，称物平施。'},
+'88':{name:'坤为地',ci:'元亨，利牝马之贞。君子有攸往，先迷后得主。'}
+};
+
+function getHexInfo(shang,xia){
+  const key=''+shang+xia;
+  return HEX_DICT[key]||{name:'未知卦',ci:'暂无卦辞'};
+}
+
+// ============================================================
+// 3. 动爻爻辞（基础版：每卦第一爻和第六爻示例，完整版可扩展）
+//    实际使用中，动爻辞需结合具体卦的每一爻。
+//    这里提供通用版的动爻解读，更准确的做法是展开384爻。
+// ============================================================
+function getYaoInterpretation(hexName, dongYao){
+  const tips = {
+    '乾为天':['潜龙勿用','见龙在田','终日乾乾','或跃在渊','飞龙在天','亢龙有悔'],
+    '坤为地':['履霜坚冰至','直方大，不习无不利','含章可贞','括囊无咎','黄裳元吉','龙战于野'],
+    '地山谦':['谦谦君子','鸣谦贞吉','劳谦君子','无不利，撝谦','不富以其邻','鸣谦，利用行师']
+  };
+  const defaultYao = ['初爻：事之始，宜谨慎','二爻：渐入佳境，宜坚守','三爻：多忧惧，宜戒慎','四爻：进退之际，宜审时','五爻：得位得中，事可成','上爻：物极必反，宜知止'];
+  const list = tips[hexName] || defaultYao;
+  return list[dongYao-1] || defaultYao[dongYao-1];
+}
+
+// ============================================================
+// 4. 核心起卦逻辑（不变）
+// ============================================================
+function yaoToNum(y){ for(let i=1;i<=8;i++){ if(TRI[i].y[0]===y[0]&&TRI[i].y[1]===y[1]&&TRI[i].y[2]===y[2]) return i;} return 1; }
+
+function calcHex(shang,xia,dong){
+  const xiaY=TRI[xia].y, shangY=TRI[shang].y;
+  const ben=[xiaY[0],xiaY[1],xiaY[2],shangY[0],shangY[1],shangY[2]];
+  const bianY=[...ben]; const idx=dong-1; bianY[idx]=bianY[idx]===1?0:1;
+  const bianXia=yaoToNum([bianY[0],bianY[1],bianY[2]]);
+  const bianShang=yaoToNum([bianY[3],bianY[4],bianY[5]]);
+  const huXia=yaoToNum([ben[1],ben[2],ben[3]]);
+  const huShang=yaoToNum([ben[2],ben[3],ben[4]]);
+  return { ben:{shang,xia}, bian:{shang:bianShang,xia:bianXia}, hu:{shang:huShang,xia:huXia}, dong:dong };
+}
+
+// ============================================================
+// 5. 存储当前卦象（供解卦使用）
+// ============================================================
+let currentResult = null;
+
+// ============================================================
+// 6. 显示结果 + 绑定点击解卦
+// ============================================================
+function showResult(r){
+  currentResult = r;
+  const benInfo=getHexInfo(r.ben.shang,r.ben.xia);
+  const huInfo=getHexInfo(r.hu.shang,r.hu.xia);
+  const bianInfo=getHexInfo(r.bian.shang,r.bian.xia);
+
+  const html=`
+    <div class="hex-block" onclick="openModal()">
+      <div style="font-size:13px;color:#8a7a6a;">📖 本卦</div>
+      <div class="hex-symbol">${TS[r.ben.shang]}<br>${TS[r.ben.xia]}</div>
+      <div class="hex-title" style="color:#5b4b3a;">${benInfo.name}</div>
+      <div class="hex-desc">上${TN[r.ben.shang]} · 下${TN[r.ben.xia]}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="hex-block" onclick="openModal()">
+      <div style="font-size:13px;color:#8a7a6a;">🔗 互卦 · 过程</div>
+      <div class="hex-symbol">${TS[r.hu.shang]}<br>${TS[r.hu.xia]}</div>
+      <div class="hex-title" style="color:#6b5f54;">${huInfo.name}</div>
+      <div class="hex-desc">上${TN[r.hu.shang]} · 下${TN[r.hu.xia]}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="hex-block" onclick="openModal()">
+      <div style="font-size:13px;color:#8a7a6a;">🔄 变卦 · 结果（动爻第${r.dong}爻）</div>
+      <div class="hex-symbol">${TS[r.bian.shang]}<br>${TS[r.bian.xia]}</div>
+      <div class="hex-title" style="color:#8a7a6a;">${bianInfo.name}</div>
+      <div class="hex-desc">上${TN[r.bian.shang]} · 下${TN[r.bian.xia]}</div>
+    </div>
+    <div class="info-line">
+      <span>上卦: ${TN[r.ben.shang]}（${r.ben.shang}）</span>
+      <span>下卦: ${TN[r.ben.xia]}（${r.ben.xia}）</span>
+      <span>动爻: ${r.dong}</span>
+    </div>
+  `;
+  document.getElementById('hexagramContent').innerHTML = html;
+  document.getElementById('resultArea').style.display = 'block';
+}
+
+// ============================================================
+// 7. 解卦弹窗
+// ============================================================
+function openModal(){
+  if(!currentResult){ return; }
+  const r = currentResult;
+  const benInfo=getHexInfo(r.ben.shang,r.ben.xia);
+  const bianInfo=getHexInfo(r.bian.shang,r.bian.xia);
+  const yaoText = getYaoInterpretation(benInfo.name, r.dong);
+
+  const html=`
+    <div class="modal-close" onclick="closeModal()">✕</div>
+    <div class="modal-title">${benInfo.name}</div>
+    <div class="modal-sub">${TS[r.ben.shang]}${TS[r.ben.xia]} · 动爻第${r.dong}爻</div>
+
+    <div class="modal-section">
+      <div class="modal-section-label">📜 卦辞</div>
+      <div class="modal-section-text">${benInfo.ci}</div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-label">⚡ 动爻解读（第${r.dong}爻）</div>
+      <div class="modal-section-text yao">${yaoText}</div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-label">🔮 变卦参考</div>
+      <div class="modal-section-text" style="font-size:15px;">
+        <strong>${bianInfo.name}</strong><br>
+        <span style="color:#6b5f54;font-size:14px;">${bianInfo.ci}</span>
+      </div>
+    </div>
+
+    <div class="modal-section" style="margin-bottom:0;">
+      <div class="modal-section-label">💡 整体提示</div>
+      <div class="modal-section-text" style="font-size:14px;color:#6b5f54;background:#f4efe8;">
+        本卦为<strong>${benInfo.name}</strong>，动爻在第${r.dong}爻，变卦为<strong>${bianInfo.name}</strong>。
+        初爻主始，二爻主进，三爻主惧，四爻主审，五爻主成，上爻主极。
+        宜结合自身处境，审时度势。
+      </div>
+    </div>
+  `;
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display = 'none';
+}
+
+// ============================================================
+// 8. 起卦接口（不变）
+// ============================================================
+function showError(msg){ const el=document.getElementById('errorMsg'); el.textContent=msg; el.style.display='block'; setTimeout(()=>{el.style.display='none';},3000); }
+function clearError(){ document.getElementById('errorMsg').style.display='none'; }
+
+function manualQi(){
+  clearError();
+  const n1=parseInt(document.getElementById('num1').value);
+  const n2=parseInt(document.getElementById('num2').value);
+  if(isNaN(n1)||isNaN(n2)||n1<1||n2<1){ showError('请输入有效的正整数 (1~99)'); return; }
+  const shang=((n1-1)%8)+1; const xia=((n2-1)%8)+1;
+  let dong=(n1+n2)%6; if(dong===0) dong=6;
+  const r=calcHex(shang,xia,dong); showResult(r);
+}
+
+function timeQi(){
+  clearError();
+  const now=new Date(); const y=now.getFullYear(), m=now.getMonth()+1, d=now.getDate(), h=now.getHours();
+  const sc=(h%12)+1;
+  const shang=((y+m+d)%8)||8; const xia=((y+m+d+sc)%8)||8;
+  let dong=((y+m+d+sc)%6); if(dong===0) dong=6;
+  document.getElementById('num1').value=shang; document.getElementById('num2').value=xia;
+  const r=calcHex(shang,xia,dong); showResult(r);
+}
+
+window.onload = timeQi;
+</script>
+</body>
+</html>
